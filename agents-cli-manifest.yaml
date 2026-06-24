@@ -1,6 +1,6 @@
 name: "era-agent"
 acli_version: "0.5.0"
-agent_directory: "app"
+agent_directory: "emergency_agent"
 region: "us-east1"
 base_template: "adk"
 generated_at: "2026-06-24T12:00:36.711477+00:00"
