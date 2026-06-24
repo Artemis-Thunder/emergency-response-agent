@@ -1,0 +1,10 @@
+rules:
+  - id: hardcoded-google-api-key
+    languages:
+      - python
+    severity: ERROR
+    message: >-
+      Hardcoded Google API key detected. Never hardcode credentials in
+      source code. Use environment variables or a secure secret manager
+      (e.g. Google Cloud Secret Manager).
+    pattern-regex: "AIzaSy[A-Za-z0-9_\\-]*"
