@@ -2,11 +2,10 @@
 """Emergency Response Coordination Agent — ADK 2.0 Workflow Graph.
 
 Graph topology:
-    START → parse_event → route_by_urgency
-                              ├── "auto"   → auto_dispatch          (terminal)
-                              └── "review" → severity_scorer (LLM)
-                                                 → human_review (HITL)
-                                                       → record_outcome (terminal)
+    START → parse_event → severity_scorer (LLM) → route_by_severity
+                                                       ├── "auto"   → auto_dispatch   (terminal)
+                                                       └── "review" → human_review (HITL)
+                                                                          → record_outcome (terminal)
 """
 
 import base64
@@ -86,33 +85,43 @@ def parse_event(ctx: Context, node_input):
 
 
 # ---------------------------------------------------------------------------
-# Node 2: Deterministic severity router
+# Node 3: Deterministic severity router (runs AFTER LLM scoring)
 # ---------------------------------------------------------------------------
 
 
-def route_by_urgency(node_input: dict):
-    """Route based on urgency_claimed vs SEVERITY_THRESHOLD.
+def route_by_severity(ctx: Context, node_input: dict):
+    """Route based on the LLM's severity_score vs SEVERITY_THRESHOLD.
 
-    Returns an Event with route="auto" or route="review" so the
-    conditional edges in the Workflow graph fire correctly.
+    Every report has already been scored by severity_scorer at this point.
+    urgency_claimed is NOT used for routing — only the LLM's assessment.
+
+    Returns Event with route="auto" (score < threshold) or
+    route="review" (score >= threshold).
     """
-    urgency = node_input.get("urgency_claimed", 0)
+    severity = node_input.get("severity_score", 0)
+    report = ctx.state.get("report", {})
 
-    if urgency < SEVERITY_THRESHOLD:
-        return Event(output=node_input, route="auto")
-    return Event(output=node_input, route="review")
+    # Merge assessment + report into a single dict for downstream nodes
+    merged = {"assessment": node_input, "report": report}
+
+    if severity < SEVERITY_THRESHOLD:
+        return Event(output=merged, route="auto")
+    return Event(output=merged, route="review")
 
 
 # ---------------------------------------------------------------------------
-# Node 3a: Auto-dispatch (urgency_claimed < threshold)
+# Node 4a: Auto-dispatch (LLM severity_score < threshold)
 # ---------------------------------------------------------------------------
 
 
 def auto_dispatch(node_input: dict):
-    """Instantly dispatch low-severity reports — no LLM, no human."""
-    report_id = node_input["report_id"]
-    severity = node_input["urgency_claimed"]
-    units = max(1, severity)  # 1 unit for sev-1, 2 units for sev-2
+    """Instantly dispatch low-severity reports — scored by LLM, no human needed."""
+    report = node_input.get("report", {})
+    assessment = node_input.get("assessment", {})
+
+    report_id = report.get("report_id", "UNKNOWN")
+    severity = assessment.get("severity_score", 0)
+    units = assessment.get("recommended_units", max(1, severity))
 
     if not re.match(r"^ER-\d{4}-\d{6}$", report_id):
         result = f"DISPATCH REJECTED: Invalid report ID '{report_id}'."
@@ -120,7 +129,8 @@ def auto_dispatch(node_input: dict):
         result = (
             f"AUTO-DISPATCH CONFIRMED — Report {report_id}: "
             f"{units} unit(s) dispatched for severity-{severity} "
-            f"{node_input['incident_type']} at {node_input['location']}."
+            f"{assessment.get('incident_type', 'unknown')} at "
+            f"{report.get('location', 'unknown')}."
         )
 
     # Content event → renders in UI / playground
@@ -143,7 +153,7 @@ def auto_dispatch(node_input: dict):
 
 
 # ---------------------------------------------------------------------------
-# Node 3b: LLM severity scorer (urgency_claimed >= threshold)
+# Node 2: LLM severity scorer (runs on EVERY report)
 # ---------------------------------------------------------------------------
 
 SCORER_INSTRUCTION = """You are the severity scoring engine for a metropolitan
@@ -158,6 +168,11 @@ Severity scale (1-5):
   3 = Medium (potential safety concern, timely response needed)
   4 = High (active threat, immediate response required)
   5 = Critical (life-threatening, all available units respond)
+
+The caller may include an "urgency_claimed" field — treat it as a useful
+signal but NOT as ground truth. Always make your own independent severity
+assessment based on the incident_type, description, and location. A caller
+may understate urgency; your job is to catch that.
 
 Based on the report details, assign a severity_score, classify the
 incident_type, provide a brief justification, recommend the number of
@@ -175,7 +190,7 @@ severity_scorer = LlmAgent(
 
 
 # ---------------------------------------------------------------------------
-# Node 4: Human dispatcher review (HITL via RequestInput)
+# Node 4b: Human dispatcher review (HITL via RequestInput)
 # ---------------------------------------------------------------------------
 
 
@@ -185,20 +200,23 @@ async def human_review(ctx: Context, node_input: dict):
 
     First invocation: yields a RequestInput with the LLM assessment.
     On resume:        reads ctx.resume_inputs for the approval decision.
+
+    node_input is the merged {assessment, report} dict from route_by_severity.
     """
-    report = ctx.state.get("report", {})
+    assessment = node_input.get("assessment", {})
+    report = node_input.get("report", {})
 
     if not ctx.resume_inputs:
         # ── First run: present assessment, request approval ──────────
         assessment_text = (
-            f"🚨 SEVERITY {node_input.get('severity_score', '?')} — "
-            f"{node_input.get('incident_type', 'unknown').upper()}\n"
+            f"🚨 SEVERITY {assessment.get('severity_score', '?')} — "
+            f"{assessment.get('incident_type', 'unknown').upper()}\n"
             f"Report: {report.get('report_id', 'N/A')}\n"
             f"Location: {report.get('location', 'N/A')}\n"
             f"Description: {report.get('description', 'N/A')}\n"
-            f"Justification: {node_input.get('justification', 'N/A')}\n"
-            f"Recommended units: {node_input.get('recommended_units', 0)}\n"
-            f"Recommended response: {node_input.get('recommended_response', 'N/A')}\n\n"
+            f"Justification: {assessment.get('justification', 'N/A')}\n"
+            f"Recommended units: {assessment.get('recommended_units', 0)}\n"
+            f"Recommended response: {assessment.get('recommended_response', 'N/A')}\n\n"
             f'Reply with: {{"approved": true}} or {{"approved": false}}'
         )
         yield RequestInput(
@@ -220,7 +238,7 @@ async def human_review(ctx: Context, node_input: dict):
     yield Event(
         output={
             "approved": approved,
-            "assessment": node_input,
+            "assessment": assessment,
             "report": report,
         }
     )
@@ -282,9 +300,9 @@ root_agent = Workflow(
     name="emergency_response",
     edges=[
         ("START", parse_event),
-        (parse_event, route_by_urgency),
-        (route_by_urgency, {"auto": auto_dispatch, "review": severity_scorer}),
-        (severity_scorer, human_review),
+        (parse_event, severity_scorer),
+        (severity_scorer, route_by_severity),
+        (route_by_severity, {"auto": auto_dispatch, "review": human_review}),
         (human_review, record_outcome),
     ],
 )
