@@ -96,25 +96,34 @@ def security_gate(ctx: Context, node_input: dict):
     """Sanitise the report before it reaches the LLM or any log sink.
 
     1. Redact PII (SSN, phone, email, address, credit card) from the
-       description field.  The redacted categories are recorded in state
-       so downstream nodes (and the human reviewer) can see *what* was
-       scrubbed without seeing the raw data.
+       description AND location fields.  The redacted categories are
+       recorded in state so downstream nodes (and the human reviewer)
+       can see *what* was scrubbed without seeing the raw data.
     2. Detect prompt-injection patterns in the description.  If any
        fire, the report is routed directly to human_review as a
        security event — the LLM never sees the malicious text.
     """
     description = node_input.get("description", "")
+    location = node_input.get("location", "")
 
-    # ── Step 1: PII redaction ────────────────────────────────────────
-    redaction = redact_pii(description)
-    sanitized_report = {**node_input, "description": redaction.sanitized}
+    # ── Step 1: PII redaction (description + location) ────────────────
+    desc_redaction = redact_pii(description)
+    loc_redaction = redact_pii(location)
+
+    all_categories = desc_redaction.categories | loc_redaction.categories
+
+    sanitized_report = {
+        **node_input,
+        "description": desc_redaction.sanitized,
+        "location": loc_redaction.sanitized,
+    }
 
     # Persist the sanitized report and redaction metadata in state
     ctx.state["report"] = sanitized_report
-    ctx.state["pii_redacted"] = sorted(redaction.categories)
+    ctx.state["pii_redacted"] = sorted(all_categories)
 
     # ── Step 2: Prompt-injection detection ───────────────────────────
-    injection = detect_injection(redaction.sanitized)
+    injection = detect_injection(desc_redaction.sanitized)
 
     if injection.is_injection:
         # Route directly to human review — LLM must NOT see this
@@ -159,8 +168,8 @@ def security_gate(ctx: Context, node_input: dict):
 
     # ── Clean report — continue to LLM severity scorer ───────────────
     pii_note = ""
-    if redaction.categories:
-        pii_note = f" (PII redacted: {', '.join(sorted(redaction.categories))})"
+    if all_categories:
+        pii_note = f" (PII redacted: {', '.join(sorted(all_categories))})"
 
     yield Event(
         content=types.Content(

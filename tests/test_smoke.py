@@ -438,6 +438,70 @@ async def test_prompt_injection():
     print()
 
 
+async def test_location_address_redaction():
+    """SECURITY TEST: street address in location field is redacted."""
+    print("=" * 60)
+    print("TEST 8: SECURITY — address redaction in location field")
+    print("=" * 60)
+
+    runner = InMemoryRunner(app=app)
+    session = await runner.session_service.create_session(
+        app_name="emergency_agent", user_id="test"
+    )
+
+    # The location contains a proper street address that should be redacted
+    report = json.dumps(
+        {
+            "data": {
+                "report_id": "ER-2026-000300",
+                "incident_type": "noise_complaint",
+                "description": "Loud party going on late at night",
+                "location": "742 Evergreen Terrace",
+                "urgency_claimed": 1,
+            }
+        }
+    )
+
+    content_texts = []
+    async for event in runner.run_async(
+        user_id="test",
+        session_id=session.id,
+        new_message=types.Content(
+            role="user", parts=[types.Part.from_text(text=report)]
+        ),
+    ):
+        if event.content:
+            for part in event.content.parts:
+                if hasattr(part, "text") and part.text:
+                    content_texts.append(part.text)
+                    print(f"  [CONTENT] {part.text}")
+
+    all_content = " ".join(content_texts)
+
+    # The raw street address must NOT appear in LLM or dispatch output
+    # (it may appear in the parse_event receipt before security_gate runs)
+    gate_and_after = [
+        t for t in content_texts
+        if "SECURITY GATE" in t or "severity_score" in t
+        or "AUTO-DISPATCH" in t or "DISPATCH CONFIRMED" in t
+    ]
+    after_gate_content = " ".join(gate_and_after)
+
+    assert "742 Evergreen Terrace" not in after_gate_content, (
+        "Raw street address leaked past security gate into LLM/dispatch output"
+    )
+
+    # The security gate should report ADDRESS as a redacted category
+    gate_msg = [t for t in content_texts if "SECURITY GATE" in t]
+    assert gate_msg, "Security gate did not emit a status message"
+    assert any("ADDRESS" in t for t in gate_msg), (
+        "ADDRESS not reported as redacted in location field"
+    )
+
+    print(f"\n  ✅ PASS: Street address in location field redacted by security gate")
+    print()
+
+
 async def main():
     await test_auto_dispatch()
     runner, session = await test_hitl_pause()
@@ -446,6 +510,7 @@ async def main():
     await test_low_urgency_high_severity()
     await test_pii_redaction()
     await test_prompt_injection()
+    await test_location_address_redaction()
 
     print("=" * 60)
     print("ALL TESTS PASSED")
