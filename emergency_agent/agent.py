@@ -2,10 +2,12 @@
 """Emergency Response Coordination Agent — ADK 2.0 Workflow Graph.
 
 Graph topology:
-    START → parse_event → severity_scorer (LLM) → route_by_severity
-                                                       ├── "auto"   → auto_dispatch   (terminal)
-                                                       └── "review" → human_review (HITL)
-                                                                          → record_outcome (terminal)
+    START → parse_event → security_gate
+                              ├── "clean"     → severity_scorer (LLM) → route_by_severity
+                              │                                            ├── "auto"   → auto_dispatch  (terminal)
+                              │                                            └── "review" → human_review   (HITL)
+                              │                                                              → record_outcome (terminal)
+                              └── "injection" → human_review (HITL) → record_outcome (terminal)
 """
 
 import base64
@@ -24,6 +26,7 @@ from google.genai import types
 
 from .config import MODEL_NAME, SEVERITY_THRESHOLD
 from .schemas import EmergencyReport, SeverityAssessment
+from .security import detect_injection, redact_pii
 
 # ---------------------------------------------------------------------------
 # Environment bootstrap
@@ -82,6 +85,98 @@ def parse_event(ctx: Context, node_input):
         ),
     )
 
+
+
+# ---------------------------------------------------------------------------
+# Node 2: Security gate — PII redaction + prompt-injection detection
+# ---------------------------------------------------------------------------
+
+
+def security_gate(ctx: Context, node_input: dict):
+    """Sanitise the report before it reaches the LLM or any log sink.
+
+    1. Redact PII (SSN, phone, email, address, credit card) from the
+       description field.  The redacted categories are recorded in state
+       so downstream nodes (and the human reviewer) can see *what* was
+       scrubbed without seeing the raw data.
+    2. Detect prompt-injection patterns in the description.  If any
+       fire, the report is routed directly to human_review as a
+       security event — the LLM never sees the malicious text.
+    """
+    description = node_input.get("description", "")
+
+    # ── Step 1: PII redaction ────────────────────────────────────────
+    redaction = redact_pii(description)
+    sanitized_report = {**node_input, "description": redaction.sanitized}
+
+    # Persist the sanitized report and redaction metadata in state
+    ctx.state["report"] = sanitized_report
+    ctx.state["pii_redacted"] = sorted(redaction.categories)
+
+    # ── Step 2: Prompt-injection detection ───────────────────────────
+    injection = detect_injection(redaction.sanitized)
+
+    if injection.is_injection:
+        # Route directly to human review — LLM must NOT see this
+        ctx.state["security_flags"] = injection.matched_patterns
+
+        # Build a synthetic assessment so human_review receives its
+        # expected {assessment, report} shape
+        synthetic_assessment = {
+            "severity_score": 5,
+            "incident_type": "security_event",
+            "justification": (
+                "PROMPT INJECTION DETECTED — "
+                + "; ".join(injection.matched_patterns)
+            ),
+            "recommended_units": 0,
+            "recommended_response": (
+                "Manual review required. The report description "
+                "contains suspected prompt-injection patterns. "
+                "Do NOT auto-dispatch."
+            ),
+        }
+
+        yield Event(
+            content=types.Content(
+                role="model",
+                parts=[
+                    types.Part.from_text(
+                        text=(
+                            f"🛡️ SECURITY GATE — injection detected in "
+                            f"{sanitized_report.get('report_id', 'N/A')}: "
+                            + ", ".join(injection.matched_patterns)
+                        )
+                    )
+                ],
+            ),
+        )
+        yield Event(
+            output={"assessment": synthetic_assessment, "report": sanitized_report},
+            route="injection",
+        )
+        return
+
+    # ── Clean report — continue to LLM severity scorer ───────────────
+    pii_note = ""
+    if redaction.categories:
+        pii_note = f" (PII redacted: {', '.join(sorted(redaction.categories))})"
+
+    yield Event(
+        content=types.Content(
+            role="model",
+            parts=[
+                types.Part.from_text(
+                    text=(
+                        f"🛡️ SECURITY GATE — "
+                        f"{sanitized_report.get('report_id', 'N/A')} passed"
+                        + pii_note
+                    )
+                )
+            ],
+        ),
+    )
+    yield Event(output=sanitized_report, route="clean")
 
 
 # ---------------------------------------------------------------------------
@@ -300,7 +395,8 @@ root_agent = Workflow(
     name="emergency_response",
     edges=[
         ("START", parse_event),
-        (parse_event, severity_scorer),
+        (parse_event, security_gate),
+        (security_gate, {"clean": severity_scorer, "injection": human_review}),
         (severity_scorer, route_by_severity),
         (route_by_severity, {"auto": auto_dispatch, "review": human_review}),
         (human_review, record_outcome),
