@@ -8,6 +8,7 @@ Tests verify:
   5. SECURITY: low urgency_claimed + severe description → LLM overrides
   6. SECURITY: PII in description → scrubbed before LLM sees it
   7. SECURITY: prompt injection → bypasses LLM, routes to human_review
+  8. SECURITY: street address in location → redacted by security gate
 """
 
 import asyncio
@@ -438,10 +439,10 @@ async def test_prompt_injection():
     print()
 
 
-async def test_location_address_redaction():
+async def test_location_redaction():
     """SECURITY TEST: street address in location field is redacted."""
     print("=" * 60)
-    print("TEST 8: SECURITY — address redaction in location field")
+    print("TEST 8: SECURITY — location address redaction")
     print("=" * 60)
 
     runner = InMemoryRunner(app=app)
@@ -449,13 +450,12 @@ async def test_location_address_redaction():
         app_name="emergency_agent", user_id="test"
     )
 
-    # The location contains a proper street address that should be redacted
     report = json.dumps(
         {
             "data": {
                 "report_id": "ER-2026-000300",
                 "incident_type": "noise_complaint",
-                "description": "Loud party going on late at night",
+                "description": "Loud party in progress",
                 "location": "742 Evergreen Terrace",
                 "urgency_claimed": 1,
             }
@@ -463,6 +463,8 @@ async def test_location_address_redaction():
     )
 
     content_texts = []
+    gate_seen = False
+    post_gate_texts = []
     async for event in runner.run_async(
         user_id="test",
         session_id=session.id,
@@ -475,30 +477,29 @@ async def test_location_address_redaction():
                 if hasattr(part, "text") and part.text:
                     content_texts.append(part.text)
                     print(f"  [CONTENT] {part.text}")
+                    if "SECURITY GATE" in part.text:
+                        gate_seen = True
+                    elif gate_seen:
+                        post_gate_texts.append(part.text)
 
-    all_content = " ".join(content_texts)
-
-    # The raw street address must NOT appear in LLM or dispatch output
-    # (it may appear in the parse_event receipt before security_gate runs)
-    gate_and_after = [
-        t for t in content_texts
-        if "SECURITY GATE" in t or "severity_score" in t
-        or "AUTO-DISPATCH" in t or "DISPATCH CONFIRMED" in t
-    ]
-    after_gate_content = " ".join(gate_and_after)
-
-    assert "742 Evergreen Terrace" not in after_gate_content, (
-        "Raw street address leaked past security gate into LLM/dispatch output"
-    )
-
-    # The security gate should report ADDRESS as a redacted category
+    # The security gate should report ADDRESS redaction
     gate_msg = [t for t in content_texts if "SECURITY GATE" in t]
     assert gate_msg, "Security gate did not emit a status message"
     assert any("ADDRESS" in t for t in gate_msg), (
-        "ADDRESS not reported as redacted in location field"
+        "ADDRESS not reported as redacted in security gate message"
     )
 
-    print(f"\n  ✅ PASS: Street address in location field redacted by security gate")
+    # Post-gate content (LLM output, dispatch result) must NOT contain raw address
+    post_gate_content = " ".join(post_gate_texts)
+    assert "742 Evergreen Terrace" not in post_gate_content, (
+        "Raw street address leaked through to post-gate output"
+    )
+    # Confirm redaction token appears in downstream output
+    assert "[REDACTED:ADDRESS]" in post_gate_content, (
+        "Redaction token not present in post-gate output"
+    )
+
+    print(f"\n  ✅ PASS: Location address redacted in all post-gate content")
     print()
 
 
@@ -510,7 +511,7 @@ async def main():
     await test_low_urgency_high_severity()
     await test_pii_redaction()
     await test_prompt_injection()
-    await test_location_address_redaction()
+    await test_location_redaction()
 
     print("=" * 60)
     print("ALL TESTS PASSED")

@@ -95,8 +95,8 @@ def parse_event(ctx: Context, node_input):
 def security_gate(ctx: Context, node_input: dict):
     """Sanitise the report before it reaches the LLM or any log sink.
 
-    1. Redact PII (SSN, phone, email, address, credit card) from the
-       description AND location fields.  The redacted categories are
+    1. Redact PII (SSN, phone, email, address, credit card) from both
+       the description and location fields.  The redacted categories are
        recorded in state so downstream nodes (and the human reviewer)
        can see *what* was scrubbed without seeing the raw data.
     2. Detect prompt-injection patterns in the description.  If any
@@ -111,7 +111,6 @@ def security_gate(ctx: Context, node_input: dict):
     loc_redaction = redact_pii(location)
 
     all_categories = desc_redaction.categories | loc_redaction.categories
-
     sanitized_report = {
         **node_input,
         "description": desc_redaction.sanitized,
