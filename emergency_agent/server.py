@@ -27,6 +27,7 @@ POST /event
 """
 
 import json
+import logging
 import re
 from contextlib import asynccontextmanager
 
@@ -36,6 +37,8 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from .agent import app as adk_app
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Runner — single instance shared across requests
@@ -128,6 +131,7 @@ async def handle_event(request: Request):
     )
     # Remember which user_id owns this session for /approve lookups
     _session_owners[session.id] = source
+    logger.info("Event received — session=%s source=%s", session.id, source)
 
     # --- Run the workflow ---
     events_log = []
@@ -188,6 +192,7 @@ async def approve_dispatch(request: Request):
     # Resolve user_id from server-side tracking (caller can override)
     user_id = body.get("user_id") or _session_owners.get(session_id, "dispatcher")
     approved = body.get("approved", False)
+    logger.info("Approve request — session=%s user=%s approved=%s", session_id, user_id, approved)
 
     resume_part = create_request_input_response(
         interrupt_id="dispatch_approval",

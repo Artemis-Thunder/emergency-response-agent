@@ -12,6 +12,7 @@ Graph topology:
 
 import base64
 import json
+import logging
 import os
 import re
 from datetime import datetime, timezone
@@ -35,6 +36,9 @@ from .security import detect_injection, redact_pii
 # ---------------------------------------------------------------------------
 load_dotenv()
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "False"
+os.environ["ADK_OTEL_TO_CLOUD"] = "False"
+
+logger = logging.getLogger(__name__)
 
 # Audit log path (project-root/artifacts/audit_log.jsonl)
 AUDIT_LOG_PATH = Path(__file__).resolve().parent.parent / "artifacts" / "audit_log.jsonl"
@@ -46,6 +50,7 @@ def _write_audit_log(entry: dict) -> None:
     AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(AUDIT_LOG_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    logger.info("AUDIT: %s", json.dumps(entry, ensure_ascii=False))
 
 
 # ---------------------------------------------------------------------------
