@@ -1,8 +1,8 @@
 # STRIDE Threat Model — Emergency Response Coordination Agent
 
-> **Generated**: 2026-06-24
+> **Generated**: 2026-06-24 | **Updated**: 2026-07-02
 > **Scope**: `emergency-response-agent/` workspace
-> **Status**: Pre-implementation (scaffold + dispatch tool only)
+> **Status**: Post-implementation — 7/10 items mitigated, 1 accepted risk, 2 N/A
 
 ---
 
@@ -128,15 +128,15 @@ Caller → [ADK Runtime / FastAPI] → [LLM Agent] → [dispatch_resources tool]
 
 ## 4. Priority Remediation Roadmap
 
-| Priority | Action | Addresses |
-|---|---|---|
-| **P0** | Build PII redaction node (SSN, phone, email, address, credit card) | Information Disclosure |
-| **P0** | Build prompt injection detection node | Tampering, Elevation of Privilege |
-| **P0** | Implement `Workflow` graph with deterministic severity routing | Elevation of Privilege |
-| **P0** | Add `adk_request_input` human-in-the-loop gate for severity ≥ 3 | Elevation of Privilege |
-| **P1** | Replace hardcoded API key with environment variable | Information Disclosure |
-| **P1** | Add dispatch audit logging to Cloud Logging | Repudiation |
-| **P1** | Switch to persistent session storage | Repudiation |
-| **P2** | Add input length validation (max 2000 chars) | Denial of Service |
-| **P2** | Configure Cloud Run authentication / rate limiting | Spoofing, Denial of Service |
-| **P2** | Add error handler to suppress stack traces | Information Disclosure |
+| Priority | Action | Addresses | Status |
+|---|---|---|---|
+| **P0** | Build PII redaction node (SSN, phone, email, address, credit card) | Information Disclosure | ✅ **MITIGATED** — `security_gate` node redacts 5 PII categories from both description and location fields before LLM or human sees data (`bfe07cc`, `5fafcd7`) |
+| **P0** | Build prompt injection detection node | Tampering, Elevation of Privilege | ✅ **MITIGATED** — `security_gate` runs 10 heuristic regex patterns; injections bypass LLM entirely and route to human review as severity-5 security events (`bfe07cc`) |
+| **P0** | Implement `Workflow` graph with deterministic severity routing | Elevation of Privilege | ✅ **MITIGATED** — `route_by_severity` is pure Python routing on LLM's `severity_score`, not user-submitted `urgency_claimed` (`a295494`) |
+| **P0** | Add `adk_request_input` human-in-the-loop gate for severity ≥ 3 | Elevation of Privilege | ✅ **MITIGATED** — `human_review` node uses `RequestInput(interrupt_id="dispatch_approval")` with `@node(rerun_on_resume=True)` (`b1ef391`) |
+| **P1** | Replace hardcoded API key with environment variable | Information Disclosure | ✅ **MITIGATED** — API key loaded via `os.environ.get("GOOGLE_API_KEY")` from `.env` (gitignored); Semgrep pre-commit hook blocks hardcoded keys (`b1ef391`) |
+| **P1** | Add dispatch audit logging | Repudiation | ✅ **MITIGATED** — `_write_audit_log()` appends JSONL entries (report_id, severity, decision, units, UTC timestamp) to `artifacts/audit_log.jsonl` from both `auto_dispatch` and `record_outcome` (`2018e08`) |
+| **P1** | Switch to persistent session storage | Repudiation | ⚠️ **ACCEPTED RISK** — In-memory sessions are appropriate for this local-only capstone project. Production deployment would require `agent_platform_sessions` or equivalent; documented as future work if the agent moves to Cloud Run. |
+| **P2** | Add input length validation (max 2000 chars) | Denial of Service | ✅ **MITIGATED** — `EmergencyReport.description` capped at 2000 chars via Pydantic `@field_validator`; oversized inputs truncated with `[TRUNCATED]` marker (`2018e08`) |
+| **P2** | Configure Cloud Run authentication / rate limiting | Spoofing, Denial of Service | ⬜ **N/A** — Local-only deployment; Cloud Run is out of scope for this capstone project. |
+| **P2** | Add error handler to suppress stack traces | Information Disclosure | ⬜ **N/A** — No HTTP endpoint exposed in current architecture (workflow runs via `InMemoryRunner`). Would apply if FastAPI layer is re-added. |
