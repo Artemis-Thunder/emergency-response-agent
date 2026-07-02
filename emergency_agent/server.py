@@ -42,6 +42,10 @@ from .agent import app as adk_app
 # ---------------------------------------------------------------------------
 runner: InMemoryRunner | None = None
 
+# Track which user_id owns each session so /approve can resolve it
+# without the caller needing to know the original source.
+_session_owners: dict[str, str] = {}
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -122,6 +126,8 @@ async def handle_event(request: Request):
         app_name="emergency_agent",
         user_id=source,
     )
+    # Remember which user_id owns this session for /approve lookups
+    _session_owners[session.id] = source
 
     # --- Run the workflow ---
     events_log = []
@@ -151,6 +157,7 @@ async def handle_event(request: Request):
     return JSONResponse(
         content={
             "session_id": session.id,
+            "user_id": source,
             "source": source,
             "events": events_log,
             "needs_human_approval": needs_approval,
@@ -178,7 +185,8 @@ async def approve_dispatch(request: Request):
 
     body = await request.json()
     session_id = body["session_id"]
-    user_id = body.get("user_id", "dispatcher")
+    # Resolve user_id from server-side tracking (caller can override)
+    user_id = body.get("user_id") or _session_owners.get(session_id, "dispatcher")
     approved = body.get("approved", False)
 
     resume_part = create_request_input_response(
