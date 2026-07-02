@@ -9,10 +9,13 @@ Tests verify:
   6. SECURITY: PII in description → scrubbed before LLM sees it
   7. SECURITY: prompt injection → bypasses LLM, routes to human_review
   8. SECURITY: street address in location → redacted by security gate
+  9. AUDIT: dispatch decisions logged to artifacts/audit_log.jsonl
+ 10. VALIDATION: description > 2000 chars → truncated
 """
 
 import asyncio
 import json
+import os
 import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -503,6 +506,148 @@ async def test_location_redaction():
     print()
 
 
+async def test_audit_logging():
+    """AUDIT TEST: dispatch decisions are logged to audit_log.jsonl."""
+    print("=" * 60)
+    print("TEST 9: AUDIT — dispatch decisions logged")
+    print("=" * 60)
+
+    from emergency_agent.agent import AUDIT_LOG_PATH
+
+    # Clear any existing log
+    if AUDIT_LOG_PATH.exists():
+        AUDIT_LOG_PATH.unlink()
+
+    runner = InMemoryRunner(app=app)
+
+    # --- Sub-test A: auto-dispatch writes an entry ---
+    session_a = await runner.session_service.create_session(
+        app_name="emergency_agent", user_id="test"
+    )
+    report_a = json.dumps(
+        {
+            "data": {
+                "report_id": "ER-2026-000901",
+                "incident_type": "lost_pet",
+                "description": "Cat stuck in tree, owner watching",
+                "location": "Park",
+                "urgency_claimed": 1,
+            }
+        }
+    )
+    async for event in runner.run_async(
+        user_id="test",
+        session_id=session_a.id,
+        new_message=types.Content(
+            role="user", parts=[types.Part.from_text(text=report_a)]
+        ),
+    ):
+        pass
+
+    # --- Sub-test B: human-approved dispatch writes an entry ---
+    session_b = await runner.session_service.create_session(
+        app_name="emergency_agent", user_id="test"
+    )
+    report_b = json.dumps(
+        {
+            "data": {
+                "report_id": "ER-2026-000902",
+                "incident_type": "fire",
+                "description": "Flames visible from roof of warehouse",
+                "location": "Warehouse District",
+                "urgency_claimed": 4,
+            }
+        }
+    )
+    # Phase 1: send report, expect pause
+    async for event in runner.run_async(
+        user_id="test",
+        session_id=session_b.id,
+        new_message=types.Content(
+            role="user", parts=[types.Part.from_text(text=report_b)]
+        ),
+    ):
+        pass
+    # Phase 2: approve
+    resume_part = create_request_input_response(
+        interrupt_id="dispatch_approval",
+        response={"approved": True},
+    )
+    async for event in runner.run_async(
+        user_id="test",
+        session_id=session_b.id,
+        new_message=types.Content(role="user", parts=[resume_part]),
+    ):
+        pass
+
+    # --- Verify log file ---
+    assert AUDIT_LOG_PATH.exists(), f"Audit log not found at {AUDIT_LOG_PATH}"
+    lines = AUDIT_LOG_PATH.read_text(encoding="utf-8").strip().splitlines()
+    entries = [json.loads(line) for line in lines]
+
+    # Should have at least 2 entries (auto-dispatch + human-approved)
+    assert len(entries) >= 2, f"Expected ≥ 2 audit entries, got {len(entries)}"
+
+    # Check auto-dispatch entry
+    auto_entry = next((e for e in entries if e["report_id"] == "ER-2026-000901"), None)
+    assert auto_entry is not None, "Auto-dispatch entry missing from audit log"
+    assert auto_entry["decision"] == "auto_dispatched"
+    assert "timestamp" in auto_entry
+    print(f"  [AUDIT] auto-dispatch: {auto_entry}")
+
+    # Check human-approved entry
+    approved_entry = next((e for e in entries if e["report_id"] == "ER-2026-000902"), None)
+    assert approved_entry is not None, "Human-approved entry missing from audit log"
+    assert approved_entry["decision"] == "dispatched"
+    assert "timestamp" in approved_entry
+    print(f"  [AUDIT] approved:      {approved_entry}")
+
+    print(f"\n  ✅ PASS: {len(entries)} audit entries written to {AUDIT_LOG_PATH.name}")
+    print()
+
+
+async def test_description_length():
+    """VALIDATION TEST: descriptions > 2000 chars are truncated."""
+    print("=" * 60)
+    print("TEST 10: VALIDATION — description length cap")
+    print("=" * 60)
+
+    from emergency_agent.schemas import MAX_DESCRIPTION_LENGTH, EmergencyReport
+
+    # Build a description that exceeds the limit
+    long_desc = "A" * (MAX_DESCRIPTION_LENGTH + 500)
+    report = EmergencyReport(
+        report_id="ER-2026-000999",
+        incident_type="noise_complaint",
+        description=long_desc,
+        location="Somewhere",
+        urgency_claimed=1,
+    )
+
+    assert len(report.description) <= MAX_DESCRIPTION_LENGTH + len(" [TRUNCATED]"), (
+        f"Description not truncated: {len(report.description)} chars"
+    )
+    assert report.description.endswith("[TRUNCATED]"), (
+        "Truncated description missing [TRUNCATED] marker"
+    )
+    print(f"  Input length:  {len(long_desc)} chars")
+    print(f"  Output length: {len(report.description)} chars")
+    print(f"  Ends with:     ...{report.description[-20:]}")
+
+    # Also verify a normal description passes through unchanged
+    normal = EmergencyReport(
+        report_id="ER-2026-000998",
+        incident_type="noise_complaint",
+        description="Normal length description",
+        location="Here",
+        urgency_claimed=1,
+    )
+    assert normal.description == "Normal length description"
+
+    print(f"\n  ✅ PASS: Descriptions capped at {MAX_DESCRIPTION_LENGTH} chars")
+    print()
+
+
 async def main():
     await test_auto_dispatch()
     runner, session = await test_hitl_pause()
@@ -512,6 +657,8 @@ async def main():
     await test_pii_redaction()
     await test_prompt_injection()
     await test_location_redaction()
+    await test_audit_logging()
+    await test_description_length()
 
     print("=" * 60)
     print("ALL TESTS PASSED")

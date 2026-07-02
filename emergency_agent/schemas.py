@@ -1,6 +1,8 @@
 """Pydantic schemas for the Emergency Response Agent workflow."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+MAX_DESCRIPTION_LENGTH = 2000
 
 
 class EmergencyReport(BaseModel):
@@ -11,6 +13,14 @@ class EmergencyReport(BaseModel):
     description: str
     location: str
     urgency_claimed: int = Field(ge=1, le=5)
+
+    @field_validator("description")
+    @classmethod
+    def cap_description_length(cls, v: str) -> str:
+        """Truncate descriptions exceeding MAX_DESCRIPTION_LENGTH."""
+        if len(v) > MAX_DESCRIPTION_LENGTH:
+            return v[:MAX_DESCRIPTION_LENGTH] + " [TRUNCATED]"
+        return v
 
 
 class SeverityAssessment(BaseModel):

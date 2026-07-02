@@ -14,6 +14,8 @@ import base64
 import json
 import os
 import re
+from datetime import datetime, timezone
+from pathlib import Path
 
 from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
@@ -33,6 +35,17 @@ from .security import detect_injection, redact_pii
 # ---------------------------------------------------------------------------
 load_dotenv()
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "False"
+
+# Audit log path (project-root/artifacts/audit_log.jsonl)
+AUDIT_LOG_PATH = Path(__file__).resolve().parent.parent / "artifacts" / "audit_log.jsonl"
+
+
+def _write_audit_log(entry: dict) -> None:
+    """Append a single audit entry as one JSON line to the audit log."""
+    entry["timestamp"] = datetime.now(timezone.utc).isoformat()
+    AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(AUDIT_LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -244,15 +257,20 @@ def auto_dispatch(node_input: dict):
         ),
     )
     # Output event → workflow terminal output
-    yield Event(
-        output={
-            "status": "auto_dispatched",
-            "report_id": report_id,
-            "severity": severity,
-            "units": units,
-            "result": result,
-        }
-    )
+    output = {
+        "status": "auto_dispatched",
+        "report_id": report_id,
+        "severity": severity,
+        "units": units,
+        "result": result,
+    }
+    _write_audit_log({
+        "report_id": report_id,
+        "severity": severity,
+        "decision": "auto_dispatched",
+        "units": units,
+    })
+    yield Event(output=output)
 
 
 # ---------------------------------------------------------------------------
@@ -384,15 +402,20 @@ def record_outcome(node_input: dict):
             parts=[types.Part.from_text(text=f"📝 {result}")],
         ),
     )
-    yield Event(
-        output={
-            "status": "dispatched" if approved else "declined",
-            "report_id": report_id,
-            "severity": severity,
-            "units": units if approved else 0,
-            "result": result,
-        }
-    )
+    output = {
+        "status": "dispatched" if approved else "declined",
+        "report_id": report_id,
+        "severity": severity,
+        "units": units if approved else 0,
+        "result": result,
+    }
+    _write_audit_log({
+        "report_id": report_id,
+        "severity": severity,
+        "decision": "dispatched" if approved else "declined",
+        "units": units if approved else 0,
+    })
+    yield Event(output=output)
 
 
 # ---------------------------------------------------------------------------
