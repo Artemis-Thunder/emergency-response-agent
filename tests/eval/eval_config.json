@@ -1,0 +1,20 @@
+{
+  "criteria": {
+    "custom_response_quality": 0.5,
+    "agent_turn_count": 0.0
+  },
+  "customMetrics": {
+    "custom_response_quality": {
+      "codeConfig": {
+        "name": "tests.eval.custom_metrics.response_quality"
+      },
+      "description": "Evaluates overall response quality of the emergency agent on a 1-5 scale using an LLM judge."
+    },
+    "agent_turn_count": {
+      "codeConfig": {
+        "name": "tests.eval.custom_metrics.agent_turn_count"
+      },
+      "description": "Counts the number of agent turns in the conversation."
+    }
+  }
+}

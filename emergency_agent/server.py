@@ -32,7 +32,8 @@ import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+import httpx
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
@@ -48,6 +49,9 @@ runner: InMemoryRunner | None = None
 # Track which user_id owns each session so /approve can resolve it
 # without the caller needing to know the original source.
 _session_owners: dict[str, str] = {}
+
+# In-memory history for GET /history
+_event_history: list[dict] = []
 
 
 @asynccontextmanager
@@ -114,7 +118,7 @@ async def handle_event(request: Request):
 
     # --- Derive a session ID from the report_id if possible ---
     # Peek into the data to extract report_id for session naming
-    data = payload.get("data", {})
+    data = payload.get("data", payload)
     if isinstance(data, str):
         # base64 — don't decode here, let parse_event handle it
         session_id = f"{source}-unknown"
@@ -133,6 +137,28 @@ async def handle_event(request: Request):
     _session_owners[session.id] = source
     logger.info("Event received — session=%s source=%s", session.id, source)
 
+    # --- Initialize history entry ---
+    import base64
+    desc = "Unknown"
+    if isinstance(data, dict):
+        desc = data.get("description", "Unknown")
+    elif isinstance(data, str):
+        try:
+            decoded = json.loads(base64.b64decode(data).decode("utf-8"))
+            desc = decoded.get("description", "Unknown")
+        except Exception:
+            pass
+
+    history_entry = {
+        "session_id": session.id,
+        "description": desc,
+        "severity_score": None,
+        "routing_decision": "unknown",
+        "hitl_triggered": False,
+        "final_outcome": "processing"
+    }
+    _event_history.append(history_entry)
+
     # --- Run the workflow ---
     events_log = []
     needs_approval = False
@@ -148,6 +174,16 @@ async def handle_event(request: Request):
             for part in event.content.parts:
                 if hasattr(part, "text") and part.text:
                     events_log.append(part.text)
+
+                    # Extract severity score
+                    m = re.search(r'"severity_score"\s*:\s*(\d+)', part.text)
+                    if m:
+                        history_entry["severity_score"] = int(m.group(1))
+
+                    if "AUTO-DISPATCH" in part.text:
+                        history_entry["routing_decision"] = "auto_dispatch"
+                        history_entry["final_outcome"] = "auto_dispatched"
+
                 elif hasattr(part, "function_call") and part.function_call:
                     fc = part.function_call
                     interrupt_id = fc.args.get("interruptId", "unknown")
@@ -157,6 +193,9 @@ async def handle_event(request: Request):
         # ADK 2.0 signals HITL via long_running_tool_ids
         if hasattr(event, "long_running_tool_ids") and event.long_running_tool_ids:
             needs_approval = True
+            history_entry["hitl_triggered"] = True
+            history_entry["routing_decision"] = "review_agent"
+            history_entry["final_outcome"] = "pending_approval"
 
     return JSONResponse(
         content={
@@ -199,6 +238,12 @@ async def approve_dispatch(request: Request):
         response={"approved": approved},
     )
 
+    # Update history
+    for entry in _event_history:
+        if entry["session_id"] == session_id:
+            entry["final_outcome"] = "dispatched" if approved else "declined"
+            break
+
     events_log = []
     async for event in runner.run_async(
         user_id=user_id,
@@ -223,3 +268,50 @@ async def approve_dispatch(request: Request):
 @fastapi_app.get("/health")
 async def health():
     return {"status": "ok", "runner": runner is not None}
+
+
+# ---------------------------------------------------------------------------
+# GET /history — retrieve event history
+# ---------------------------------------------------------------------------
+@fastapi_app.get("/history")
+async def get_history():
+    """Return the in-memory history of processed events."""
+    return JSONResponse(content={"history": _event_history})
+
+
+# ---------------------------------------------------------------------------
+# DELETE /history — clear the in-memory event history
+# ---------------------------------------------------------------------------
+@fastapi_app.delete("/history")
+async def clear_history():
+    """Clear the in-memory event history for the current session."""
+    _event_history.clear()
+    logger.info("Event history cleared via DELETE /history")
+    return JSONResponse(content={"status": "cleared", "count": 0})
+
+
+@fastapi_app.get("/")
+async def dashboard():
+    """Serve the DispatchAI web dashboard."""
+    return FileResponse("emergency_agent/dashboard.html")
+
+@fastapi_app.get("/fleet")
+async def get_fleet():
+    """Proxy fleet status from the resource agent (via the mock fallback)."""
+    from .resource_client import get_mock_fleet
+    return JSONResponse(content=get_mock_fleet())
+
+@fastapi_app.post("/reset-fleet")
+async def reset_fleet():
+    """Proxy fleet reset to the resource agent and reset mock state."""
+    from .resource_client import reset_mock_fleet
+    reset_mock_fleet()
+
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post("http://localhost:8001/reset-fleet", timeout=3.0)
+    except Exception:
+        pass
+
+    from .resource_client import get_mock_fleet
+    return JSONResponse(content={"status": "reset", "fleet": get_mock_fleet()})

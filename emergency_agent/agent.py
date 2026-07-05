@@ -28,6 +28,7 @@ from google.adk.workflow import Workflow, node
 from google.genai import types
 
 from .config import MODEL_NAME, SEVERITY_THRESHOLD
+from .resource_client import query_availability, reserve_resources
 from .schemas import EmergencyReport, SeverityAssessment
 from .security import detect_injection, redact_pii
 
@@ -235,23 +236,53 @@ def route_by_severity(ctx: Context, node_input: dict):
 # ---------------------------------------------------------------------------
 
 
-def auto_dispatch(node_input: dict):
-    """Instantly dispatch low-severity reports — scored by LLM, no human needed."""
+async def auto_dispatch(node_input: dict):
+    """Instantly dispatch low-severity reports — scored by LLM, no human needed.
+
+    Queries the ResourceAvailabilityAgent (via A2A) before confirming dispatch.
+    If fewer units are available than recommended, adjusts the dispatch count.
+    """
     report = node_input.get("report", {})
     assessment = node_input.get("assessment", {})
 
     report_id = report.get("report_id", "UNKNOWN")
     severity = assessment.get("severity_score", 0)
     units = assessment.get("recommended_units", max(1, severity))
+    incident_type = assessment.get("incident_type", "default")
 
     if not re.match(r"^ER-\d{4}-\d{6}$", report_id):
         result = f"DISPATCH REJECTED: Invalid report ID '{report_id}'."
+        availability_note = ""
     else:
+        # ── Query resource availability via A2A ──────────────────────
+        avail = await query_availability(incident_type, units)
+        can_dispatch = avail.get("can_dispatch", units)
+        available = avail.get("available", units)
+        source = avail.get("source", "unknown")
+
+        if can_dispatch < units:
+            availability_note = (
+                f" [Resource check ({source}): Recommended {units} "
+                f"{avail.get('unit_type', 'units')} but only {available} "
+                f"available — dispatching {can_dispatch}]"
+            )
+            units = can_dispatch
+        else:
+            availability_note = (
+                f" [Resource check ({source}): {available} "
+                f"{avail.get('unit_type', 'units')} available — sufficient]"
+            )
+
+        # Reserve the units
+        reservation = await reserve_resources(incident_type, units)
+        logger.info("Reservation result: %s", reservation)
+
         result = (
             f"AUTO-DISPATCH CONFIRMED — Report {report_id}: "
             f"{units} unit(s) dispatched for severity-{severity} "
-            f"{assessment.get('incident_type', 'unknown')} at "
+            f"{incident_type} at "
             f"{report.get('location', 'unknown')}."
+            f"{availability_note}"
         )
 
     # Content event → renders in UI / playground
@@ -343,7 +374,7 @@ async def human_review(ctx: Context, node_input: dict):
             f"Justification: {assessment.get('justification', 'N/A')}\n"
             f"Recommended units: {assessment.get('recommended_units', 0)}\n"
             f"Recommended response: {assessment.get('recommended_response', 'N/A')}\n\n"
-            f'Reply with: {{"approved": true}} or {{"approved": false}}'
+            f'Reply with "approve" or "decline"'
         )
         yield RequestInput(
             interrupt_id="dispatch_approval",
@@ -375,8 +406,12 @@ async def human_review(ctx: Context, node_input: dict):
 # ---------------------------------------------------------------------------
 
 
-def record_outcome(node_input: dict):
-    """Log the final decision and dispatch resources if approved."""
+async def record_outcome(node_input: dict):
+    """Log the final decision and dispatch resources if approved.
+
+    On approval, queries the ResourceAvailabilityAgent (via A2A) to check
+    and reserve units before confirming dispatch.
+    """
     approved = node_input.get("approved", False)
     report = node_input.get("report", {})
     assessment = node_input.get("assessment", {})
@@ -384,14 +419,41 @@ def record_outcome(node_input: dict):
     report_id = report.get("report_id", "UNKNOWN")
     severity = assessment.get("severity_score", 0)
     units = assessment.get("recommended_units", 0)
+    incident_type = assessment.get("incident_type", "default")
+
+    availability_note = ""
 
     if approved:
         if re.match(r"^ER-\d{4}-\d{6}$", report_id):
+            # ── Query resource availability via A2A ──────────────────
+            avail = await query_availability(incident_type, units)
+            can_dispatch = avail.get("can_dispatch", units)
+            available = avail.get("available", units)
+            source = avail.get("source", "unknown")
+
+            if can_dispatch < units:
+                availability_note = (
+                    f" [Resource check ({source}): Recommended {units} "
+                    f"{avail.get('unit_type', 'units')} but only {available} "
+                    f"available — dispatching {can_dispatch}]"
+                )
+                units = can_dispatch
+            else:
+                availability_note = (
+                    f" [Resource check ({source}): {available} "
+                    f"{avail.get('unit_type', 'units')} available — sufficient]"
+                )
+
+            # Reserve the units
+            reservation = await reserve_resources(incident_type, units)
+            logger.info("Reservation result: %s", reservation)
+
             result = (
                 f"DISPATCH CONFIRMED — Report {report_id}: "
                 f"{units} unit(s) dispatched for severity-{severity} "
-                f"{assessment.get('incident_type', 'unknown')} at "
+                f"{incident_type} at "
                 f"{report.get('location', 'unknown')}."
+                f"{availability_note}"
             )
         else:
             result = f"DISPATCH REJECTED: Invalid report ID '{report_id}'."
@@ -419,6 +481,7 @@ def record_outcome(node_input: dict):
         "severity": severity,
         "decision": "dispatched" if approved else "declined",
         "units": units if approved else 0,
+        "availability": availability_note,
     })
     yield Event(output=output)
 

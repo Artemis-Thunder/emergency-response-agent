@@ -1,2 +1,81 @@
-{"report_id": "ER-2026-000901", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T11:05:44.527661+00:00"}
-{"report_id": "ER-2026-000902", "severity": 5, "decision": "dispatched", "units": 6, "timestamp": "2026-07-02T11:05:46.166445+00:00"}
+{"report_id": "ER-2026-000901", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T12:07:42.413219+00:00"}
+{"report_id": "ER-2026-000902", "severity": 5, "decision": "dispatched", "units": 6, "timestamp": "2026-07-02T12:07:56.201922+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:03:07.017802+00:00"}
+{"report_id": "ER-2025-E002", "severity": 5, "decision": "dispatched", "units": 8, "timestamp": "2026-07-02T16:03:08.816350+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:03:11.901857+00:00"}
+{"report_id": "ER-2025-E004", "severity": 5, "decision": "declined", "units": 0, "timestamp": "2026-07-02T16:03:11.908299+00:00"}
+{"report_id": "ER-2025-E005", "severity": 5, "decision": "dispatched", "units": 2, "timestamp": "2026-07-02T16:03:13.543782+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:10:02.352416+00:00"}
+{"report_id": "ER-2025-E002", "severity": 5, "decision": "dispatched", "units": 8, "timestamp": "2026-07-02T16:10:05.184060+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:10:07.798759+00:00"}
+{"report_id": "ER-2025-E004", "severity": 5, "decision": "declined", "units": 0, "timestamp": "2026-07-02T16:10:07.801942+00:00"}
+{"report_id": "ER-2025-E005", "severity": 5, "decision": "dispatched", "units": 2, "timestamp": "2026-07-02T16:10:09.700060+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:10:48.440213+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:10:49.351626+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:15:35.734016+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:15:36.066558+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:20:21.783031+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:20:22.270075+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:29:20.094915+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:29:20.786765+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:30:29.193377+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:30:38.251625+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:32:18.880734+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:32:21.048722+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:52:21.173949+00:00"}
+{"report_id": "ER-2025-E002", "severity": 5, "decision": "dispatched", "units": 8, "timestamp": "2026-07-02T16:52:23.123100+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:52:26.174797+00:00"}
+{"report_id": "ER-2025-E004", "severity": 5, "decision": "declined", "units": 0, "timestamp": "2026-07-02T16:52:26.177429+00:00"}
+{"report_id": "ER-2025-E005", "severity": 5, "decision": "dispatched", "units": 2, "timestamp": "2026-07-02T16:52:28.195301+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T16:57:43.410051+00:00"}
+{"report_id": "ER-2025-E002", "severity": 5, "decision": "dispatched", "units": 6, "timestamp": "2026-07-02T16:57:45.150413+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T16:57:47.399453+00:00"}
+{"report_id": "ER-2025-E004", "severity": 5, "decision": "declined", "units": 0, "timestamp": "2026-07-02T16:57:47.402115+00:00"}
+{"report_id": "ER-2025-E005", "severity": 4, "decision": "dispatched", "units": 2, "timestamp": "2026-07-02T16:57:49.092434+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-02T17:00:02.943131+00:00"}
+{"report_id": "ER-2025-E002", "severity": 5, "decision": "dispatched", "units": 10, "timestamp": "2026-07-02T17:00:08.716098+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-02T17:00:20.867733+00:00"}
+{"report_id": "ER-2025-E004", "severity": 5, "decision": "declined", "units": 0, "timestamp": "2026-07-02T17:00:20.870861+00:00"}
+{"report_id": "ER-2025-E005", "severity": 5, "decision": "dispatched", "units": 2, "timestamp": "2026-07-02T17:00:23.603509+00:00"}
+{"report_id": "RPT-001", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-03T11:58:12.729705+00:00"}
+{"report_id": "RPT-003", "severity": 5, "decision": "dispatched", "units": 10, "availability": "", "timestamp": "2026-07-03T12:00:08.646430+00:00"}
+{"report_id": "ER-2026-000001", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-03T12:01:10.603825+00:00"}
+{"report_id": "ER-2025-E001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-03T13:32:23.285118+00:00"}
+{"report_id": "ER-2025-E002", "severity": 5, "decision": "dispatched", "units": 8, "availability": "", "timestamp": "2026-07-03T13:32:24.365500+00:00"}
+{"report_id": "ER-2025-E003", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-03T13:32:25.870258+00:00"}
+{"report_id": "ER-2025-E004", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-03T13:32:25.873259+00:00"}
+{"report_id": "ER-2025-E005", "severity": 5, "decision": "dispatched", "units": 2, "availability": "", "timestamp": "2026-07-03T13:32:27.395317+00:00"}
+{"report_id": "ER-2025-E006", "severity": 2, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-03T13:32:29.040416+00:00"}
+{"report_id": "ER-2025-E007", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-03T13:32:29.043000+00:00"}
+{"report_id": "ER-2025-E008", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-03T13:32:30.773440+00:00"}
+{"report_id": "ER-2025-E009", "severity": 4, "decision": "dispatched", "units": 2, "availability": "", "timestamp": "2026-07-03T13:32:32.207743+00:00"}
+{"report_id": "ER-2025-E010", "severity": 3, "decision": "dispatched", "units": 1, "availability": "", "timestamp": "2026-07-03T13:32:33.538926+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-03T13:37:28.553881+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-03T13:40:09.417530+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-03T13:42:13.687552+00:00"}
+{"report_id": "ER-2026-000002", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-03T13:42:19.044004+00:00"}
+{"report_id": "ER-2026-343652", "severity": 2, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-03T17:57:25.732422+00:00"}
+{"report_id": "ER-2026-692740", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-03T18:01:12.517104+00:00"}
+{"report_id": "ER-2026-921442", "severity": 5, "decision": "dispatched", "units": 0, "availability": " [Resource check (mock_fallback): Recommended 6 Fire Trucks but only 0 available — dispatching 0]", "timestamp": "2026-07-03T18:11:31.147062+00:00"}
+{"report_id": "ER-2026-276646", "severity": 5, "decision": "dispatched", "units": 0, "availability": " [Resource check (mock_fallback): Recommended 6 Fire Trucks but only 0 available — dispatching 0]", "timestamp": "2026-07-03T18:26:59.043481+00:00"}
+{"report_id": "ER-2026-496367", "severity": 5, "decision": "dispatched", "units": 5, "availability": " [Resource check (mock_fallback): 7 Police Cars available — sufficient]", "timestamp": "2026-07-03T18:32:14.127920+00:00"}
+{"report_id": "ER-2026-375611", "severity": 5, "decision": "dispatched", "units": 2, "availability": " [Resource check (mock_fallback): Recommended 6 Police Cars but only 2 available — dispatching 2]", "timestamp": "2026-07-03T18:33:50.195249+00:00"}
+{"report_id": "ER-2026-354371", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 6 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-03T18:42:58.086262+00:00"}
+{"report_id": "ER-2026-100484", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 6 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T09:58:10.790381+00:00"}
+{"report_id": "ER-2026-059178", "severity": 5, "decision": "dispatched", "units": 0, "availability": " [Resource check (mock_fallback): Recommended 3 Fire Trucks but only 0 available — dispatching 0]", "timestamp": "2026-07-04T10:00:07.245395+00:00"}
+{"report_id": "ER-2026-997985", "severity": 1, "decision": "auto_dispatched", "units": 0, "timestamp": "2026-07-04T10:08:42.038052+00:00"}
+{"report_id": "ER-2026-730210", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 6 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T10:10:52.219932+00:00"}
+{"report_id": "ER-2026-587856", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 6 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T10:11:10.578851+00:00"}
+{"report_id": "ER-2026-840290", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T18:32:35.157733+00:00"}
+{"report_id": "PLAYGROUND-001", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-04T18:41:19.131031+00:00"}
+{"report_id": "PLAYGROUND-001", "severity": 5, "decision": "dispatched", "units": 10, "availability": "", "timestamp": "2026-07-04T19:05:27.508796+00:00"}
+{"report_id": "ER-2026-123456", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T19:08:10.121068+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-04T19:15:05.325396+00:00"}
+{"report_id": "ER-2026-000002", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T19:15:10.878877+00:00"}
+{"report_id": "ER-2026-854465", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-04T19:19:42.442040+00:00"}
+{"report_id": "ER-2026-174801", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-04T19:21:09.586376+00:00"}
+{"report_id": "ER-2026-862243", "severity": 5, "decision": "dispatched", "units": 2, "availability": " [Resource check (mock_fallback): 6 Ambulances available — sufficient]", "timestamp": "2026-07-04T19:22:33.749638+00:00"}
+{"report_id": "ER-2026-618502", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-04T19:24:12.091516+00:00"}
+{"report_id": "ER-2026-023951", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T07:42:25.544323+00:00"}
+{"report_id": "ER-2026-593069", "severity": 5, "decision": "dispatched", "units": 2, "availability": " [Resource check (mock_fallback): 6 Ambulances available — sufficient]", "timestamp": "2026-07-05T07:42:42.551766+00:00"}
+{"report_id": "ER-2026-645812", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-05T07:43:32.911701+00:00"}

@@ -28,7 +28,8 @@ PII_PATTERNS: dict[str, re.Pattern] = {
         r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"
     ),
     "PHONE": re.compile(
-        r"\+?1?[\s\-.]?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}\b"  # US formats
+        r"\+?1?[\s\-.]?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}\b"  # 10-digit
+        r"|\b\d{3}[\s\-.]?\d{4}\b"                               # 7-digit local
     ),
     "ADDRESS": re.compile(
         # Street number + street name + street type (common US formats)
