@@ -19,9 +19,7 @@ DispatchAI acts as the first line of defense for a 911-style emergency dispatch 
 
 ## 🎥 Video Demo
 
-[**▶️ Watch the full project walkthrough on YouTube**](https://youtube.com/your-video-link-here)
-
-*(Replace the link above with your actual YouTube URL before submitting!)*
+[**▶️ Watch the full project walkthrough on YouTube**](https://youtu.be/9XtHik9sq0k)
 
 ---
 
@@ -82,12 +80,15 @@ graph TD
 
 ## Key Features
 
-### 🛡️ Security Gate
-Before the LLM ever sees a report, the system runs regex-based checks to:
-- Redact PII (SSNs, phone numbers, emails, credit card numbers, addresses)
-- Detect prompt injection attempts ("ignore previous instructions", "override system", etc.)
-
-Reports that fail security are immediately flagged for human review — the LLM never processes them.
+### 🛡️ The Security "Air Gap" (PII & Prompt Injections)
+> [!IMPORTANT]
+> **This is the flagship security feature of DispatchAI.**
+> Before the Gemini LLM is allowed to process a 911 report, the system runs strict regex-based screening to:
+>
+> 1. **Redact PII:** Automatically strips SSNs, phone numbers, emails, credit cards, and addresses from the text.
+> 2. **Neutralize Prompt Injections:** Catches override commands like *"ignore previous instructions"* or *"system prompt bypass"*.
+>
+> **Any report that triggers a security violation is immediately escalated to a Human Supervisor. The AI is bypassed completely.**
 
 ### 🧠 AI Triage
 A Gemini LLM reads the sanitized report and returns:

@@ -79,3 +79,15 @@
 {"report_id": "ER-2026-023951", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T07:42:25.544323+00:00"}
 {"report_id": "ER-2026-593069", "severity": 5, "decision": "dispatched", "units": 2, "availability": " [Resource check (mock_fallback): 6 Ambulances available — sufficient]", "timestamp": "2026-07-05T07:42:42.551766+00:00"}
 {"report_id": "ER-2026-645812", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-05T07:43:32.911701+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T12:25:03.524668+00:00"}
+{"report_id": "ER-2026-000002", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-05T12:25:08.730957+00:00"}
+{"report_id": "ER-2026-474397", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-05T13:14:42.475167+00:00"}
+{"report_id": "ER-2026-525999", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T13:15:48.194049+00:00"}
+{"report_id": "ER-2026-159022", "severity": 5, "decision": "dispatched", "units": 2, "availability": " [Resource check (mock_fallback): 6 Ambulances available — sufficient]", "timestamp": "2026-07-05T13:17:22.431633+00:00"}
+{"report_id": "ER-2026-399370", "severity": 5, "decision": "declined", "units": 0, "availability": "", "timestamp": "2026-07-05T13:21:35.566434+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T15:58:06.247061+00:00"}
+{"report_id": "ER-2026-000002", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-05T15:58:11.809308+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T16:01:04.742801+00:00"}
+{"report_id": "ER-2026-000002", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-05T16:01:10.343510+00:00"}
+{"report_id": "ER-2026-000001", "severity": 1, "decision": "auto_dispatched", "units": 1, "timestamp": "2026-07-05T16:02:19.774512+00:00"}
+{"report_id": "ER-2026-000002", "severity": 5, "decision": "dispatched", "units": 4, "availability": " [Resource check (mock_fallback): Recommended 10 Fire Trucks but only 4 available — dispatching 4]", "timestamp": "2026-07-05T16:02:25.193520+00:00"}
